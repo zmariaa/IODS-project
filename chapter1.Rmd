@@ -1,4 +1,13 @@
 
 # About the project
 
-*Write a short description about the course and add a link to your GitHub repository here. This is an R Markdown (.Rmd) file so you can use R Markdown syntax.*
+
+<style>
+div.highlight { background-color:#e9ff32; }
+</style>
+
+I came to know about **Introduction to Open Data Science** course from a friend and immediately signed up for it. I think this course will be a *great learning experience* for me. 
+
+<div class = "highlight">
+You can find my my GitHub repository [here](https://github.com/zmariaa/IODS-project/).
+</div>
