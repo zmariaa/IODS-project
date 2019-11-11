@@ -5,3 +5,130 @@
 - Describe your work and results clearly. 
 - Assume the reader has an introductory course level understanding of writing and reading R code as well as statistical methods.
 - Assume the reader has no previous knowledge of your data or the more advanced methods you are using.
+
+## Part 1
+
+**Step 1** - Reading data from the local folder as prepared in data wrangling exercise. You can find the code in data folder. 
+
+We use *head()* to check if data is loaded correctly. 
+
+```{r}
+data <- read.csv(file = "data/learning2014.csv", row.names = 1)
+head(data)
+```
+
+**Step 2** : Exploring the dimensions and basic structure of data using *dim()* and *str()*  respectively. 
+
+```{r}
+dim(data)
+```
+
+The output of *dim()* shows that there are 166 observations and 7 variables in the analysis dataset. 
+
+```{r}
+str(data)
+```
+
+The output of *str()* shows that there are 166 observations of the 7 variables. It shows the details about each of the variable including the name, type and some values. The analysis dataset was created using meta data of JYTOPKYS3. The [original data](https://www.mv.helsinki.fi/home/kvehkala/JYTmooc/JYTOPKYS3-data.txt) used was collected in 2014-2015 using surveys and contained 60 variables.
+
+The idea of this analysis is to study 3 learning approaches/strategies: deep, strategic and surface. 
+
+Below is a brief overview of the variables:
+
+* **gender**: is a factor type with two distinct values: "F" and "M"
+* **age**: age is in years and it is dervice from the date of birth.
+* **attitude**: is the scaled back (mean) values of 10 questions related to students attitude towards statistics. 
+* **deep**: It contains the mean values of questions in the survey which were related to deep learning approach. 
+* **stra**: It contains the mean values of questions in the survey which were related to strategic learning approach. 
+* **surf**: It contains the mean values of questions in the survey which were related to surface learning approach. 
+* **points**: It contains the scores of students on statistics course exam. 
+
+## Part 2
+
+We use *ggpairs()* to visualize a scatter plot matrix of the variables (except gender). 
+
+```{r}
+library(ggplot2)
+library(GGally)
+
+pairs(data[-1])
+
+p <- ggpairs(data, mapping = aes(), lower = list(combo = wrap("facethist", bins = 20)))
+```
+
+Using this scatter plot matrix we can observe the distribution of variables and their relationships. For example, observing age, which is represented in first row and first column, we can see that the distribution shows that most of the participants are young (less than 30). We can also observe relations, for example, points and attitude show a clear relationship that as attitude value increases, points increase as well. 
+
+We can also analyze individual distributions in detail using *hist()*. 
+
+```{r}
+par(mfrow=c(2,3))
+hist(data$age, prob=T, main="age")
+hist(data$attitude, prob=T, main="attitude")
+hist(data$points, prob=T, main="points")
+hist(data$deep, prob=T, main="deep")
+hist(data$stra, prob=T, main="stra")
+hist(data$surf, prob=T, main="surf")
+```
+
+
+Another graphical summary tools is boxplot. One meaningful way to use it here 
+will be to visualize scores of 3 learning methods for a quick comparison. 
+
+
+```{r}
+boxplot(data[,4:6]) 
+```
+
+## Part 3
+
+Explanatory variables chosen = attitude, stra, deep. 
+
+```{r}
+my_model <- lm(points ~ attitude + age + deep, data)
+summary(my_model)
+```
+
+Looking at the p-value of the F-statistic and t-statitic values in the coefficient table, it seems there is a significant association between points and attitude. In comparison to that, age and deep learning strateft have a weaker association with earned points in the exam. 
+
+We can check the confidence interval of the model using *confint()*.
+
+```{r}
+confint(my_model)
+```
+
+We can remove one of the less significant variable, deep, and repeat the process. 
+
+```{r}
+my_model <- lm(points ~ attitude + deep, data)
+summary(my_model)
+```
+
+
+
+```{r}
+ggpairs(data, lower = list(combo = wrap("facethist", bins = 20)))
+```
+
+
+## Part 4 
+
+Analysis: From the summary and charts shows in part 3, below observations can be made:
+
+* Attitude has the most significant relation with points as compared to other two factors. 
+* As this is a case of multiple regression, so R2 increases as more variables are added. Therefore, we consider the adjusted R2, and its value (around 0.18) suggests that although attitude is a significant factor but it is not the only factor influencing points. 
+
+## Part 5 
+```{r}
+my_model <- lm(points ~ attitude + age + deep, data)
+par(mflow=c(2,2))
+plot(my_model, which=c(1,2,5))
+```
+
+Model assumption:
+There is a linear correlation between variables and errors are normally distributed. 
+
+Observations:
+
+1. Residuals vs Fitted (1): The plot confirms the linear correlations.  
+2. Normal Q-Q (2): There is a clear pattern indicating errors are normally distributed with a clear exception of very low or very high values. 
+3. Residuals vs Leverage: The plot is skewed and it can be said that there are no observations (outliers) which stand out significantly (or has unusually hight leverage on data). 
