@@ -1,6 +1,5 @@
 
-# About the project
-
+# Week 1 - Start me up!
 
 <style>
 div.highlight { background-color:#e9ff32; }
