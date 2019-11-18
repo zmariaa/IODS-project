@@ -1,0 +1,131 @@
+# Week 3 - Logistic Regression - Analysis
+
+## Part 2
+
+```{r}
+alc <- read.csv( file="data/alc.csv", sep=",")
+dim(alc)
+colnames(alc)
+```
+
+This data is combined from two data-sets containing responses of student performance questionnaire from math and portuguese classes. This joined data (of students who answered for both questionnaires) has 382 observations of 35 variables. The name of variables can be seen in the output above. The details on original variables collected from questionnaire can be found [here](https://archive.ics.uci.edu/ml/datasets/Student+Performance). The additional attributes added are:
+
+* alc_use: combines weekly and weekend alocohol use levels (Dalc and Walc).
+* hight_use: logical column where True value represents that alc_use > 2, otherwise false.
+
+## Part 3
+
+The 4 interesting variables in relation to alochol consumption for my analysis are:
+
+* famrel: quality of family relationships (numeric: from 1 - very bad to 5 - excellent)
+* studytime: weekly study time (numeric: 1 - <2 hours, 2 - 2 to 5 hours, 3 - 5 to 10 hours, or 4 - >10 hours)
+* freetime: free time after school (numeric: from 1 - very low to 5 - very high)
+* goout: going out with friends (numeric: from 1 - very low to 5 - very high)
+
+These variables are chosen to see overall impact of time management on the alcohol consumption. My hypothesis is that if students have **more** meaningless time (higher values for freetime and goout) and **less** meaningful time (time spent with family and studying), their alochol consumption will be high. 
+
+## Part 4
+
+Let's first see the distributions:
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+alc_selected <- select(alc, one_of(c("freetime", "famrel", "studytime", "goout")))
+gather(alc_selected) %>% ggplot(aes(value)) + facet_wrap("key", scales = "free") + geom_bar()
+```
+
+The distributions are skewed. The skewness can be interpreted as:
+
+* Mostly students probably spent more time with family as family relations are strong for most of the students.
+* Most of the students have a medium or medium-high free time. Only a small propotion have very low free time (1). 
+* Most of the students have a medium or medium-low frequency of going out with friends.
+* Mostly students spent 2-5 hours in studying.
+ 
+#  
+```{r}
+qplot(alc_use, studytime, data = alc) + geom_smooth(method = "lm")
+g1 <- ggplot(alc, aes(x = high_use, y = studytime))
+g1 + geom_boxplot() + ylab("studytime")
+```
+
+**Interpretation of studytime**: Alcohol use increases as the studytime decreases. 
+
+```{r}
+qplot(alc_use, famrel, data = alc) + geom_smooth(method = "lm")
+g1 <- ggplot(alc, aes(x = high_use, y = famrel))
+g1 + geom_boxplot() + ylab("fam rel")
+```
+
+**Interpretation of famrel**: Alcohol use increases as the fam-rel strength decreases. 
+
+```{r}
+qplot(alc_use, goout, data = alc) + geom_smooth(method = "lm")
+g1 <- ggplot(alc, aes(x = high_use, y = goout))
+g1 + geom_boxplot() + ylab("go out")
+```
+
+**Interpretation of goout**: Alcohol use increases as the going out with friends activity increases.
+
+```{r}
+qplot(alc_use, freetime, data = alc) + geom_smooth(method = "lm")
+g1 <- ggplot(alc, aes(x = high_use, y = freetime))
+g1 + geom_boxplot() + ylab("free time")
+```
+
+**Interpretation of freetime**: Alcohol use increases as the freetime increases but the change is not significant. 
+
+## Part 5
+
+Use logistic regression to statistically explore the relationship between your chosen variables and the binary high/low alcohol consumption variable as the target variable. Present and interpret a summary of the fitted model. Present and interpret the coefficients of the model as odds ratios and provide confidence intervals for them. Interpret the results and compare them to your previously stated hypothesis. Hint: If your model includes factor variables see for example the first answer of this stackexchange thread on how R treats and how you should interpret these variables in the model output (or use some other resource to study this). (0-5 points)
+
+```{r}
+m <- glm(high_use ~ studytime + famrel + freetime + goout, data = alc, family = "binomial")
+summary(m)
+```
+
+The summary shows that goout (-0.5805), studytime (-0.3732) and famrel(0.7487) are significant variables. In contrast, freetime is not significant as it was also observed in part 2.  
+
+The negative sign of goout and studytime show that they are related to lower consumption of alcohol whereas positive sign for freetime show that higher the value of freetime, higher will be the alcohol consumption as well. This is possibly because as students go with friends, they tend to consume alochol more. 
+
+So, my hypothesis is true for these variables. 
+
+```{r}
+OR <- coef(m) %>% exp
+CI <- confint(m) %>% exp
+
+cbind(OR, CI)
+```
+
+The value of OR supports that freetime and goout strongly are related to high consumption of alcohol. However, it also shows a significant chance (greater than 50%) of high alochol consumption for famrel and freetime as well. 
+
+If we look at 97.5% Odds show a very high probability  of high alcohol consumption (value-yes) for goout. It is also significantly high for free time. For studytime and famrel, probabilities are also high with 0.9 for family relation.
+
+
+## Part 6
+
+```{r}
+probabilities <- predict(m, type = "response")
+
+alc <- mutate(alc, probability = probabilities)
+
+alc <- mutate(alc, prediction = probability > 0.5)
+
+prediction_results <- table(high_use = alc$high_use, prediction = alc$prediction)
+prediction_results
+```
+
+Graphical representation: 
+```{r}
+g <- ggplot(alc, aes(x = probability, y = high_use, col = prediction))
+g + geom_point()
+```
+
+```{r}
+results <- table(high_use = alc$high_use, prediction=alc$prediction)%>%prop.table%>%addmargins
+
+results
+```
+
+These results show that 0.7539267 or 75% (64.38% FALSE and 10.99% TRUE) results are correctly predicted and approximately 25% of the results (5.75% TRUE and 18.84% False) are incorrectly predicted. Thus, the prediction power is quite good as compared to simple guessing (50% chance of getting right).
