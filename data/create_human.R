@@ -42,6 +42,6 @@ gi <- mutate(gi, lab_part_fmratio = (lab_part_f / lab_part_m))
 human <- inner_join(hd, gi, by = "country", suffix = c(".hd",".gi"))
 str(human) # To check
 
-write.csv(human, file = "human.csv")
+write.csv(human, file = "data/human.csv")
 
 
