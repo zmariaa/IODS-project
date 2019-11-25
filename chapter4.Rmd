@@ -1,0 +1,117 @@
+# Week 4 - Clustering and classification
+
+## Part 2
+
+```{r}
+library(MASS);
+data("Boston")
+dim(Boston)
+str(Boston)
+```
+
+This data has 506 observations of 14 variables. The variables are numeric (with types num and int). The variables provide information about housing values in Boston. Details about individual variables can be found [here](https://stat.ethz.ch/R-manual/R-devel/library/MASS/html/Boston.html).
+
+## Part 3
+
+```{r}
+# Summary
+summary(Boston)
+```
+
+The summary shows min, max, mean and quartile values for all the variables. From these values, it seems that all variables have different distributions and can provide different information about the nature of variables. For example, some interesting observations for me are:
+
+* Mean age is 68.57 which means that 68.57% of owner-occupied units are built prior to 1940. 
+* The mean value of rm is 6.285 which shows that averge number per dwelling in the data is greater than 6. 
+
+
+```{r}
+# Graphical overview
+pairs(Boston)
+```
+
+The plot matrix shows relationships between pairs of variables. Some observations include visible relation between "nox and age" and "lstat and medv". This matrix can be used to identify possible relations between different variables and their strengths for further exploration. 
+
+## Part 4
+
+```{r}
+
+# Standardize the dataset
+boston_scaled <- scale(Boston)
+summary(boston_scaled)
+# Print summary of scaled data
+boston_scaled <- as.data.frame(boston_scaled)
+```
+
+The summary shows that all variables are on the same scale with mean 0. 
+
+```{r}
+# Create a new variable
+brk <- quantile(boston_scaled$crim)
+l <- c('low','med_low','med_high','high')
+crimeR <- cut(boston_scaled$crim, breaks = brk, include.lowest = TRUE, label=l)
+
+boston_scaled <- dplyr::select(boston_scaled, -crim)
+boston_scaled <- data.frame(boston_scaled, crimeR)
+
+summary(boston_scaled$crimeR)
+```
+
+Catergorical variable "crimeR" created and "crim" removed from data as per instructions.
+
+```{r}
+# Divide data into train and test
+n <- nrow(boston_scaled)
+ind <- sample(n,  size = n * 0.8)
+train <- boston_scaled[ind,]
+test <- boston_scaled[-ind,]
+```
+
+## Part 5
+
+```{r}
+# Fit the linear discriminant analysis on the train set.
+lda.fit <- lda(crimeR ~ ., data = train)
+classes <- as.numeric(train$crimeR)
+plot(lda.fit, dimen = 2,col=classes,pch=classes)
+```
+
+## Part 6
+
+```{r}
+# Save the crime categories
+crimeCat <- test[,"crimeR"]
+# Remove crime variable
+test_data <- dplyr::select(test, -crimeR)
+# Predict categories
+lda.pred <- predict(lda.fit, newdata = test)
+# Cross tabulate
+table(correct = crimeCat, predicted = lda.pred$class)
+```
+
+This shows that in most of the cases, crime rate was predicted correctly. The prediction was quite accurate for most sensitive part i.e. "high class" where only 1/30 was predicted as med_high instead of high. Just to check overall prediction accuracy we can use:
+
+```{r}
+tabular <- table(correct = crimeCat, predicted = lda.pred$class)
+sum(diag(tabular))/sum(tabular)
+```
+
+
+## Part 7
+
+```{r}
+# Reload Boston data
+library(MASS)
+data('Boston')
+# scale variables
+boston_scaled <- scale(Boston)
+# calculate distance between observations
+dist_eu <- dist(boston_scaled)
+# calculate distance between observations
+summary(dist_eu)
+# Run k-means algorithm on the dataset. 
+# Visualize the clusters 
+km <-kmeans(Boston, centers = 2) # Simple method of looking in plots is chosen to identify the right number of centers
+pairs(Boston, col = km$cluster)
+```
+
+Different number of centers were choosen in previous chunk to see the impact on pairs plot. Based on observations, it seems that ideal cluster size is 2. 
