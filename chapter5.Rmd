@@ -1,0 +1,109 @@
+# Week 5 - Logistic Regression - Analysis
+
+```{r}
+library(MASS)
+library(ggplot2)
+library(GGally)
+library(dplyr)
+library(stringr)
+
+human <- read.table("data/human.csv", header = TRUE, sep = ",", row.names = 1)
+
+```
+
+## Part 1 - Data overview
+
+```{r}
+str(human)
+```
+
+This data has 195 observations and 19 variables. Each row represents data of one country given in the Country variable. All other variables represent indicators related to health, education and employement. Countries are ranked based on these indicators. 
+
+```{r cars}
+summary(human)
+```
+
+Observations:
+There is a high difference between min and max values from the mean values of selected indicators. This can mean that there is a high difference between the indicators in developed and developing countries. 
+
+```{r}
+ggpairs(human)
+```
+
+The distributions for different variables are different with most of the variables having skewed distribution. For the relationship between variables, some of the clear observations are:
+There is a strong correlation between the variable pairs: 
+
+* Edu.Exp and Life.Exp 
+* Mat.Mor and Life.Exp
+* Mat.Mor and Edu.Exp
+* Ado.Birth and Edu.Exp
+* Ado.Birth and Mat.Mor
+
+GNI has strongest positive correlation with Edu.Exp and Life.Exp and strongest negative correlation with Ado.Birth and Mat.Mor. 
+
+## Part 2 - Perform PCA
+
+```{r}
+
+pca_human <- prcomp(human)
+summary(pca_human)
+```
+
+```{r}
+biplot(pca_human, col = c("grey", "blue"), main = "Non-standardized variables")
+```
+
+This plot is difficult to understand and makes little sense. 
+
+## Part 3 - Perform PCA on standardized data. 
+
+```{r}
+human_scaled <- scale(human)
+pca_human_scaled <- prcomp(human_scaled)
+summary(pca_human_scaled)
+biplot(pca_human_scaled, col = c("grey", "blue"), main = "Standardized variables")
+```
+
+The results are different. The scaled data is normally distributed with mean 0. It is easier to view different variables in this form. The plot is not readible for non-standardize variables but is much more readible and neat for standardized variables. 
+
+## Part 4 - interpretations of the first two principal component dimensions. 
+
+Based on previous parts, my interpretation is that there is a very high positive correlation between Edu.Exp, 
+Life.Exp, Edu2.FM and GNI. Also, Mat.Mor and Ado.Birth are highly positively correlated but have strong negative relation with previously mentioned variables (Edu.Exp, Life.Exp, Edu2.FM, GNI) as the directions are opposite. Parli.G and Labo.F have high positive correlation as well but do not have high correlation with other variables. Only Parli.G and Labo.FM contribute to PC2. All other variables contribute to PC1. 
+
+## Part 5 -  tea dataset from the package Factominer.
+
+```{r}
+library(FactoMineR)
+data("tea")
+```
+```{r}
+dim(tea)
+str(tea)
+```
+
+This data set seems to represent tea consumption patterns of a population. As the structure is complex, let's select a few variables for analysis:
+
+```{r}
+
+cols_tea <- c("Tea", "How", "how","sugar", "frequency", "healthy")
+tea <- dplyr::select(tea, one_of(cols_tea))
+str(tea)
+```
+
+MCA analysis:
+
+```{r}
+mca <- MCA(tea, graph = FALSE)
+summary(mca)
+```
+
+The first dimension explains 12% of the variance in data and second 11% which are quite low figures. Black and lemon are most significant in first dimension. In second dimension, unpackaged, milk and other are most significant. 
+
+```{r}
+plot(mca, invisible = c("ind"), habillage = "quali")
+plot(mca, invisible = c("var"), habillage = "quali")
+```
+
+Some patterns can be seen here, for example looking at distance between variables we can find following patterns: 1-2 cups/day of tea are healthy, green tea is more healthy compared to black and Early Grey, black tea is mostly taken with no sugar whereas early grey is likely to be taken with sugar, tea with milk is likely to be taken only 1/day and low frequency of tea (1 to 2/week) is closely related to not healthy conditions. 
+
