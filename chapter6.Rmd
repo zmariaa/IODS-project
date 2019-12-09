@@ -1,0 +1,218 @@
+# Week 6 - Analysis of longitudinal data
+
+## Part 1 - Implement the analyses of Chapter 8 of MABS using the RATS data.
+
+Read the data:
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(lme4)
+library(GGally)
+library(ggplot2)
+RATS <- read.csv(file = "~/IODS-project/data/RATS.csv", header = TRUE, row.names = 1)
+str(RATS)
+```
+
+Factor the categorical variables:
+
+```{r}
+RATS$ID <- factor(RATS$ID)
+RATS$Group <- factor(RATS$Group)
+str(RATS)
+```
+```{r}
+ggplot(RATS, aes(x = Time, y = weight, color=Group, group = ID)) +
+  geom_line(aes(linetype = Group)) +
+  scale_x_continuous(name = "Time (days)", breaks = seq(0, 60, 10)) +
+  scale_y_continuous(name = "Weight (grams)")
+```
+
+```{r}
+ggplot(RATS, aes(x = Time, y = weight, color=Group, group = ID)) +
+  geom_line(aes(linetype = Group)) +
+  scale_x_continuous(name = "Time (days)", breaks = seq(0, 60, 10)) +
+  scale_y_continuous(name = "Weight (grams)") +
+  facet_grid(. ~ Group, labeller = label_both)
+```
+
+The graph shows the weight change of 3 groups of rats during the study which has a duration of 60 days. Looking at the graph, we can observe that the tendency to gain weight is higher for group 2 and 3 as compared to group 1.
+
+Let's standardize the variables
+
+```{r}
+library(ggplot2)
+library(dplyr) 
+library(tidyr)
+library(lme4)
+RATS_1 <- RATS %>%
+  group_by(Time) %>%
+  mutate(stdrats = (weight - mean(weight))/sd(weight) ) %>%
+  ungroup()
+glimpse(RATS_1)
+```
+
+Plot using the standardize data:
+
+```{r}
+ggplot(RATS_1, aes(x = Time, y = stdrats, color=ID, group = ID)) +
+  geom_line(aes(linetype = Group)) +
+  scale_x_continuous(name = "Time (days)", breaks = seq(0, 60, 10)) +
+  scale_y_continuous(name = "Standardized Weight (grams)")
+```
+
+```{r}
+ggplot(RATS_1, aes(x = Time, y = stdrats, color=Group, group = ID)) +
+  geom_line(aes(linetype = Group)) +
+  scale_x_continuous(name = "Time (days)", breaks = seq(0, 60, 10)) +
+  scale_y_continuous(name = "Standardized Weight (grams)") +
+  facet_grid(. ~ Group, labeller = label_both)
+```
+
+The mean profiles suggest there is a huge difference between the 3 groups with respect to mean weight. 
+
+Summary graph using means profiles:
+
+```{r}
+n <- RATS$Time %>% unique() %>% length()
+RATS_2 <- RATS_1 %>%
+  group_by(Group, WD) %>%
+  summarise( mean = mean(weight), se = sd(weight)/sqrt(n) ) %>%
+  ungroup()
+ggplot(RATS_2, aes(x = WD, y = mean, linetype = "ID", shape = "ID")) +
+  geom_line() +
+  scale_linetype_manual(values = c(1,2)) +
+  geom_point(size=3) +
+  scale_shape_manual(values = c(1,2)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se, linetype="1"), width=0.3) +
+  theme(legend.position = c(0.8,0.8)) +
+  scale_y_continuous(name = "Mean(Weight) +/- Se(Weight)")
+```
+
+This graph shows means profile for individual subjects of experiment. It can be used to compare different subjects based on their single measurements taken  as a mean from the measurements over the period of the study.
+
+We can also check the impact of outliers in the study. 
+
+```{r}
+RATS_3 <- RATS_1 %>%
+  filter(Time > 0) %>%
+  group_by(Group, ID) %>%
+  summarise( mean=mean(weight) ) %>%
+  ungroup()
+ggplot(RATS_3, aes(x = Group, y = mean)) +
+  geom_boxplot() +
+  stat_summary(fun.y = "mean", geom = "point", shape=23, size=4, fill = "blue") +
+  scale_y_continuous(name = "mean(Weight)")
+```
+
+There are outliers in data which can be seen clearly here. The most significant outlier can be found in group 2 which we can remove for better analysis. 
+
+```{r}
+RATS_4 <- RATS_3 %>% filter(mean <570)
+```
+```{r}
+oneway.test(mean~Group,data=RATS_4,var.equal=TRUE) 
+```
+
+Using the results of  anova test above, it can be 
+
+
+## Part 2 - Implement the analyses of Chapter 9 of MABS using the BPRS data. 
+
+Read the data:
+
+```{r}
+BPRS <- read.csv(file = "~/IODS-project/data/BPRS.csv", header = TRUE, row.names = 1)
+str(BPRS)
+```
+
+Factor the categorical variables and converting weeks from factor to char. 
+
+```{r}
+BPRS$treatment <- factor(BPRS$treatment)
+BPRS$subject <- factor(BPRS$subject)
+BPRS$weeks <- as.character(BPRS$weeks)
+str(BPRS)
+```
+
+Standardize the data:
+
+```{r}
+BPRS <- BPRS %>%
+  group_by(week) %>%
+  mutate(stdbprs = (bprs - mean(bprs))/sd(bprs) ) %>%
+  ungroup()
+str(BPRS)
+```
+
+```{r}
+ggpairs(BPRS[,c(1,4:5)])
+```
+
+Plotting the data:
+
+```{r}
+ggplot(BPRS, aes(x = week, y = bprs, color = subject)) +
+  geom_line(aes(linetype = subject)) +
+  scale_x_continuous(name = "Week", breaks = seq(0, 60, 10)) +
+  scale_y_continuous(name = "bprs") +
+  theme(legend.position = "top")
+```
+
+Plotting the data for both treatment types:
+
+```{r}
+ggplot(BPRS, aes(x = week, y = bprs, color=subject)) +
+  geom_line() +
+  scale_linetype_manual(values = rep(1:10, times=4)) +
+  facet_grid(. ~ treatment, labeller = label_both) +
+  theme(legend.position = "none") + 
+  scale_y_continuous(limits = c(min(BPRS$bprs), max(BPRS$bprs))) +
+  theme(legend.position = "top")
+```
+
+
+
+```{r}
+ggplot(BPRS, aes(x = week, y = bprs, color = treatment)) +
+  geom_line(aes(linetype = treatment)) +
+  scale_x_continuous(name = "week", breaks = seq(0, 60, 20)) +
+  scale_y_continuous(name = "bprs") +
+  theme(legend.position = "top")
+```
+
+Using multiple regression model:
+
+```{r}
+BPRS_1 <- lm(bprs ~ week + treatment, data = BPRS)
+summary(BPRS_1)
+```
+
+We can see that week number (time) is more significant than treatment type. 
+
+Using the random intercept model:
+
+```{r}
+
+BPRS_2 <- lmer(bprs ~ week + treatment + (1 | subject), data = BPRS, REML = FALSE)
+summary(BPRS_2)
+```
+
+The result shows that estimated variance of the random effects is really high. There are visible changes in values of treatment2 but are not significant. 
+
+Using the random intercept and random slope model:
+
+```{r}
+BPRS_3 <- lmer(bprs ~ week + treatment + (week | subject), data = BPRS, REML = FALSE)
+summary(BPRS_3)
+```
+
+Using anova to compare models:
+
+```{r}
+anova(BPRS_3, BPRS_2)
+```
+
+
+

@@ -1,4 +1,4 @@
-# Week 5 - Logistic Regression - Analysis
+# Week 5 - Dimensionality reduction techniques
 
 ```{r}
 library(MASS)
